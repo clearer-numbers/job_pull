@@ -1,0 +1,33 @@
+name: Pull Platsbanken job ads
+
+on:
+  schedule:
+    # Runs at 06:00 UTC every 3rd day of the month (approx. every 3 days).
+    - cron: "0 6 */3 * *"
+  workflow_dispatch: {}  # lets you trigger a run manually from the Actions tab
+
+permissions:
+  contents: write
+
+jobs:
+  fetch:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repo
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Fetch new job ads
+        run: python fetch_jobs.py
+
+      - name: Commit and push results
+        run: |
+          git config user.name "job_pull bot"
+          git config user.email "actions@users.noreply.github.com"
+          git add jobs/ state.json
+          git diff --cached --quiet || git commit -m "Job ad pull: $(date -u +%Y-%m-%dT%H:%M:%S)Z"
+          git push
