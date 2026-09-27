@@ -18,13 +18,40 @@ from datetime import datetime, timedelta, timezone
 API_BASE = "https://jobsearch.api.jobtechdev.se/search"
 
 # Search terms to cover the requested titles (Swedish + English variants
-# where they differ meaningfully).
+# where they differ meaningfully). These are used as free-text queries
+# against the API, which matches anywhere in the ad -- so results are
+# further filtered by HEADLINE_KEYWORDS below to cut out ads that only
+# mention the term in passing (e.g. a Controller role that happens to use
+# Power BI internally).
 SEARCH_TERMS = [
     "Data Analyst",
     "Business Intelligence",
     "BI Analyst",
     "Tableau",
     "Power BI",
+]
+
+# An ad is only kept if its headline contains at least one of these
+# (case-insensitive substring match). This is the real relevance filter --
+# it's what keeps out ads where the search term only appears buried in the
+# body text.
+HEADLINE_KEYWORDS = [
+    "data analyst",
+    "dataanalytiker",
+    "data analytiker",
+    "business intelligence",
+    "bi-analytiker",
+    "bi analytiker",
+    "bi-analyst",
+    "bi analyst",
+    "bi-utvecklare",
+    "bi utvecklare",
+    "bi-specialist",
+    "bi specialist",
+    "bi-konsult",
+    "power bi",
+    "powerbi",
+    "tableau",
 ]
 
 LOOKBACK_DAYS_DEFAULT = 3   # used only if there's no prior state.json
@@ -59,6 +86,13 @@ def fetch(query, published_after):
         return json.loads(resp.read().decode("utf-8"))
 
 
+def headline_matches(headline):
+    if not headline:
+        return False
+    h = headline.lower()
+    return any(kw in h for kw in HEADLINE_KEYWORDS)
+
+
 def extract_ad(hit):
     employer = (hit.get("employer") or {}).get("name")
     workplace = (hit.get("workplace_address") or {}).get("municipality")
@@ -88,6 +122,8 @@ def main():
     seen_ids = set(state.get("seen_ad_ids", []))
     new_ads = {}
     errors = []
+    total_hits_seen = 0
+    dropped_by_headline_filter = 0
 
     for term in SEARCH_TERMS:
         try:
@@ -96,9 +132,14 @@ def main():
             errors.append(f"{term}: {exc}")
             continue
         for hit in data.get("hits", []):
+            total_hits_seen += 1
             ad = extract_ad(hit)
-            if ad["id"] and ad["id"] not in seen_ids:
-                new_ads[ad["id"]] = ad
+            if not ad["id"] or ad["id"] in seen_ids:
+                continue
+            if not headline_matches(ad["headline"]):
+                dropped_by_headline_filter += 1
+                continue
+            new_ads[ad["id"]] = ad
 
     now_utc = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S")
     ads_list = sorted(
@@ -113,6 +154,8 @@ def main():
                 "run_utc": now_utc,
                 "published_after_used": published_after,
                 "search_terms": SEARCH_TERMS,
+                "total_hits_before_headline_filter": total_hits_seen,
+                "dropped_by_headline_filter": dropped_by_headline_filter,
                 "new_ad_count": len(ads_list),
                 "ads": ads_list,
                 "errors": errors,
