@@ -1,0 +1,35 @@
+{
+  "ads": [
+    {
+      "id": "31518608",
+      "headline": "Senior Data Analyst",
+      "employer": "Acast AB (publ)",
+      "municipality": "Stockholm",
+      "scored_date": "2026-09-28",
+      "verdict": "maybe",
+      "cv_tailored": false,
+      "tailored_date": null,
+      "outcome": "pending"
+    },
+    {
+      "id": "31517482",
+      "headline": "Dataanalytiker",
+      "employer": "Bolagsverket",
+      "municipality": "Sundsvall",
+      "scored_date": "2026-09-28",
+      "verdict": "skip",
+      "cv_tailored": false,
+      "tailored_date": null,
+      "outcome": "skip"
+    }
+  ],
+  "runs": [
+    {
+      "score_run_utc": "2026-09-28T08:23:00",
+      "fetch_run_utc": "2026-09-27T15:20:38",
+      "raw_hits": 49,
+      "relevant": 2,
+      "scored_this_run": 2
+    }
+  ]
+}
