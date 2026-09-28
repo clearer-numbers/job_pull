@@ -25,6 +25,7 @@ API_BASE = "https://jobsearch.api.jobtechdev.se/search"
 # Power BI internally).
 SEARCH_TERMS = [
     "Data Analyst",
+    "Data",
     "Business Intelligence",
     "BI Analyst",
     "Tableau",
@@ -35,10 +36,17 @@ SEARCH_TERMS = [
 # (case-insensitive substring match). This is the real relevance filter --
 # it's what keeps out ads where the search term only appears buried in the
 # body text.
+#
+# "data"/"data-" is intentionally broad rather than an exact-phrase match
+# like "data analyst": any headline with "data" in it should be captured
+# (Data Analyst, Data Engineer, Dataanalytiker, Master Data Specialist,
+# Data & Analytics Specialist, etc.) so ads aren't dropped just because
+# the title doesn't spell out the full phrase "data analyst". The
+# non-data keywords below (business intelligence, tableau, power bi, ...)
+# stay as their own narrower matches since a bare "bi" or "power" would be
+# too noisy to match generically.
 HEADLINE_KEYWORDS = [
-    "data analyst",
-    "dataanalytiker",
-    "data analytiker",
+    "data",
     "business intelligence",
     "bi-analytiker",
     "bi analytiker",
