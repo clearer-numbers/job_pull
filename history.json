@@ -11,7 +11,8 @@
       "cv_tailored": true,
       "tailored_date": "2026-09-28",
       "outcome": "converted",
-      "gaps": "Requires dbt (not on CV); names Omni as its BI tool vs your Tableau/Power BI/Looker; 'Senior' title; Stockholm on-site, remote status unclear."
+      "gaps": "Requires dbt (not on CV); names Omni as its BI tool vs your Tableau/Power BI/Looker; 'Senior' title; Stockholm on-site, remote status unclear.",
+      "cv_file": "cv/tailored/31518608__acast.docx"
     },
     {
       "id": "31517482",

@@ -178,6 +178,7 @@ let days = 30;
 let drillOpen = false;
 let drillPendingOpen = false;
 const TRIGGER_ID = "__TRIGGER_ID__";
+const CV_RAW_BASE = "https://raw.githubusercontent.com/clearer-numbers/job_pull/main/";
 const CONNECTOR = "Claude Code Remote";
 const acted = {}; // ad id -> "converting" | "skipping" | "done" so re-renders keep the state
 
@@ -238,12 +239,9 @@ function render() {
               ? `<span class="jbadge badge-converted">converted</span>`
               : `<span class="jbadge badge-auto">apply</span>`;
             const meta = [a.employer, a.municipality, a.tailored_date ? "tailored " + a.tailored_date : ""].filter(Boolean).join(" · ");
-            const link = a.webpage_url
-              ? `<a class="job" href="${a.webpage_url}" target="_blank" rel="noopener">`
-              : `<div class="job">`;
-            const close = a.webpage_url ? `</a>` : `</div>`;
-            const open = a.webpage_url ? `<span class="jopen">Open listing &#8599;</span>` : `<span class="jopen" style="color:var(--ink-3)">no link</span>`;
-            return `${link}<div class="jmain"><div class="jtitle">${a.headline || "Untitled role"}</div><div class="jmeta">${meta}</div></div>${badge}${open}${close}`;
+            const dl = a.cv_file ? `<a class="btn jlink" href="${CV_RAW_BASE}${a.cv_file}" target="_blank" rel="noopener" style="color:var(--apply);border-color:color-mix(in srgb,var(--apply) 40%,var(--border))">Download CV &#8595;</a>` : "";
+            const open = a.webpage_url ? `<a class="btn jlink" href="${a.webpage_url}" target="_blank" rel="noopener">Listing &#8599;</a>` : "";
+            return `<div class="job"><div class="jmain"><div class="jtitle">${a.headline || "Untitled role"}</div><div class="jmeta">${meta}</div></div>${badge}<div class="pactions">${dl}${open}</div></div>`;
           }).join("")
       : `<div class="job"><div class="jmain"><div class="jmeta">No CVs tailored in this range yet. When an ad is auto-tailored (Apply) or you convert a Maybe, it shows here with a link to the listing.</div></div></div>`);
 
