@@ -332,6 +332,33 @@ function render() {
       b.addEventListener("click", () => decide(row, id, b.getAttribute("data-act")));
     });
   });
+
+  // verdict breakdown
+  const vmax = Math.max(apply, mConv, mPend, mDrop, skip, 1);
+  document.getElementById("funnel").innerHTML =
+    bar("Apply", "var(--apply)", apply, vmax) +
+    bar("Maybe · converted", "var(--accent)", mConv, vmax) +
+    bar("Maybe · pending", "var(--maybe)", mPend, vmax) +
+    bar("Maybe · dropped", "var(--drop)", mDrop, vmax) +
+    bar("Skip", "var(--skip)", skip, vmax);
+
+  // where you're applying (tailored only)
+  const locs = {};
+  tailoredAds.forEach(a => { const m = a.municipality || "Unknown"; locs[m] = (locs[m] || 0) + 1; });
+  const locEntries = Object.entries(locs).sort((a, b) => b[1] - a[1]);
+  const lmax = locEntries.reduce((m, [, c]) => Math.max(m, c), 1);
+  document.getElementById("locations").innerHTML = locEntries.length
+    ? locEntries.map(([m, c]) => bar(m, "var(--accent)", c, lmax)).join("")
+    : `<div class="empty">No CVs tailored in this range yet.</div>`;
+
+  // pipeline efficiency
+  const cycles = runs.length;
+  const raw = runs.reduce((s, r) => s + (r.raw_hits || 0), 0);
+  const rel = runs.reduce((s, r) => s + (r.relevant || 0), 0);
+  const ratio = raw > 0 ? Math.round((1 - rel / raw) * 100) : 0;
+  document.getElementById("runs").innerHTML = cycles
+    ? `<div class="noise-big"><b>${cycles}</b> cycle${cycles !== 1 ? "s" : ""} &middot; <b>${raw}</b> raw hits filtered down to <b>${rel}</b> relevant ad${rel !== 1 ? "s" : ""} <span style="color:var(--ink-3)">(${ratio}% noise removed)</span></div>`
+    : `<div class="empty">No pipeline runs in this range.</div>`;
 }
 
 function applyActionState(row, state) {
@@ -395,30 +422,6 @@ function fail(row, id, message) {
   btns.forEach(b => b.disabled = false);
   status.hidden = false; status.className = "act-status warn";
   status.textContent = message;
-
-  const vmax = Math.max(apply, mConv, mPend, mDrop, skip, 1);
-  document.getElementById("funnel").innerHTML =
-    bar("Apply", "var(--apply)", apply, vmax) +
-    bar("Maybe · converted", "var(--accent)", mConv, vmax) +
-    bar("Maybe · pending", "var(--maybe)", mPend, vmax) +
-    bar("Maybe · dropped", "var(--drop)", mDrop, vmax) +
-    bar("Skip", "var(--skip)", skip, vmax);
-
-  const locs = {};
-  ads.filter(a => a.cv_tailored).forEach(a => { const m = a.municipality || "Unknown"; locs[m] = (locs[m] || 0) + 1; });
-  const locEntries = Object.entries(locs).sort((a, b) => b[1] - a[1]);
-  const lmax = locEntries.reduce((m, [, c]) => Math.max(m, c), 1);
-  document.getElementById("locations").innerHTML = locEntries.length
-    ? locEntries.map(([m, c]) => bar(m, "var(--accent)", c, lmax)).join("")
-    : `<div class="empty">No CVs tailored in this range yet.</div>`;
-
-  const cycles = runs.length;
-  const raw = runs.reduce((s, r) => s + (r.raw_hits || 0), 0);
-  const rel = runs.reduce((s, r) => s + (r.relevant || 0), 0);
-  const ratio = raw > 0 ? Math.round((1 - rel / raw) * 100) : 0;
-  document.getElementById("runs").innerHTML = cycles
-    ? `<div class="noise-big"><b>${cycles}</b> cycle${cycles !== 1 ? "s" : ""} &middot; <b>${raw}</b> raw hits filtered down to <b>${rel}</b> relevant ad${rel !== 1 ? "s" : ""} <span style="color:var(--ink-3)">(${ratio}% noise removed)</span></div>`
-    : `<div class="empty">No pipeline runs in this range.</div>`;
 }
 
 document.querySelectorAll(".filters button").forEach(b => {
