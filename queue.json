@@ -1,4 +1,16 @@
 {
-  "pending": [],
+  "pending": [
+    {
+      "id": "31518608",
+      "headline": "Senior Data Analyst",
+      "employer": "Acast AB (publ)",
+      "municipality": "Stockholm",
+      "webpage_url": "https://arbetsformedlingen.se/platsbanken/annonser/31518608",
+      "application_deadline": "2026-10-25T23:59:59",
+      "reasoning": "Strong content match: stakeholder-facing BI/analytics role partnering with Finance, Product, Sales and Content teams, building dashboards and data models -- closely tracks Samuel's consulting background (star schema modeling, Tableau/Power BI/Looker dashboard development, translating stakeholder questions into technical requirements). The ad's call for 'experience accelerating analytics development using AI tools such as Cursor or Claude' matches his listed Claude/Gemini/ChatGPT experience directly.",
+      "gaps": "dbt is named as a core required skill ('Strong SQL and dbt skills') and doesn't appear anywhere in the CV. Omni, the specific BI tool named, also isn't listed -- his BI tool experience is Tableau/Power BI/Looker, which is transferable but not the same tool. Role is titled 'Senior' with no explicit seniority/years-of-experience stated in the CV. Location is Stockholm on-site; the ad mentions the company has remote teams generally but doesn't confirm this specific role is remote/hybrid.",
+      "added_date": "2026-09-28"
+    }
+  ],
   "decided": []
 }

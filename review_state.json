@@ -1,4 +1,7 @@
 {
-  "last_scored_ads_file": null,
-  "scored_ad_ids": []
+  "last_scored_ads_file": "jobs/ads_2026-09-27.json",
+  "scored_ad_ids": [
+    "31518608",
+    "31517482"
+  ]
 }
