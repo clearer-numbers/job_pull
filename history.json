@@ -10,7 +10,8 @@
       "verdict": "maybe",
       "cv_tailored": false,
       "tailored_date": null,
-      "outcome": "pending"
+      "outcome": "pending",
+      "gaps": "Requires dbt (not on CV); names Omni as its BI tool vs your Tableau/Power BI/Looker; 'Senior' title; Stockholm on-site, remote status unclear."
     },
     {
       "id": "31517482",

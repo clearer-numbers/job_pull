@@ -80,6 +80,29 @@
   .badge-auto { background: color-mix(in srgb, var(--apply) 16%, transparent); color: var(--apply); }
   .badge-converted { background: color-mix(in srgb, var(--accent) 16%, transparent); color: var(--accent); }
 
+  .tile.clickable.pending-tile[aria-expanded="true"] { border-color: var(--maybe); }
+  .tile.clickable.pending-tile:hover { border-color: var(--maybe); }
+  .tile .hint.mhint { color: var(--maybe); }
+
+  .job.pending-job { flex-wrap: wrap; }
+  .pjmain { flex: 1 1 auto; min-width: 200px; }
+  .pjtitle { font-size: .9rem; font-weight: 500; }
+  .pjmeta { font-size: .76rem; color: var(--ink-3); font-family: var(--mono); margin-top: 2px; }
+  .pjgap { font-size: .78rem; color: var(--ink-2); margin-top: 6px; }
+  .pjgap b { color: var(--maybe); font-weight: 600; }
+  .pactions { display: flex; gap: 8px; align-items: center; flex: 0 0 auto; flex-wrap: wrap; margin-top: 4px; }
+  .btn { font-family: var(--mono); font-size: .76rem; font-weight: 500; border-radius: 8px; padding: 7px 13px; cursor: pointer; border: 1px solid var(--border); background: var(--surface); color: var(--ink); transition: all .12s; }
+  .btn:hover:not(:disabled) { border-color: var(--ink-3); }
+  .btn:disabled { opacity: .5; cursor: default; }
+  .btn.convert { background: color-mix(in srgb, var(--apply) 14%, var(--surface)); border-color: color-mix(in srgb, var(--apply) 40%, var(--border)); color: var(--apply); }
+  .btn.convert:hover:not(:disabled) { background: color-mix(in srgb, var(--apply) 22%, var(--surface)); }
+  .btn.skip:hover:not(:disabled) { border-color: var(--drop); color: var(--drop); }
+  .btn.jlink { text-decoration: none; color: var(--accent); border-color: color-mix(in srgb, var(--accent) 35%, var(--border)); }
+  .act-status { flex-basis: 100%; font-size: .76rem; font-family: var(--mono); margin-top: 4px; }
+  .act-status.ok { color: var(--apply); }
+  .act-status.warn { color: var(--drop); }
+  .act-status.info { color: var(--ink-2); }
+
   .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 12px; }
   @media (max-width: 720px) { .grid2 { grid-template-columns: 1fr; } }
 
@@ -126,6 +149,7 @@
   <div class="meta" id="meta"></div>
   <div class="tiles" id="tiles"></div>
   <div class="drill" id="drill" hidden></div>
+  <div class="drill" id="drill-pending" hidden></div>
   <div class="grid2">
     <section class="panel">
       <h2>Verdict breakdown</h2>
@@ -152,6 +176,10 @@ let DATA = { ads: [], runs: [] };
 try { DATA = JSON.parse(document.getElementById("history-data").textContent); } catch (e) {}
 let days = 30;
 let drillOpen = false;
+let drillPendingOpen = false;
+const TRIGGER_ID = "__TRIGGER_ID__";
+const CONNECTOR = "Claude Code Remote";
+const acted = {}; // ad id -> "converting" | "skipping" | "done" so re-renders keep the state
 
 const fmtDate = iso => { if (!iso) return "—"; return new Date(iso).toLocaleString("sv-SE", { year: "numeric", month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" }); };
 const inRange = iso => { if (days === 0) return true; if (!iso) return false; return new Date(iso).getTime() >= Date.now() - days * 864e5; };
@@ -186,11 +214,16 @@ function render() {
     <div class="k">CVs tailored</div><div class="v">${tailored}</div><div class="note">apply + converted maybes</div>
     <div class="hint"><span class="chev">&#9656;</span>${tailored ? "view listings" : "none yet"}</div></button>`;
 
+  const pendingAds = ads.filter(a => a.verdict === "maybe" && a.outcome === "pending");
+  const pendingTile = `<button type="button" class="tile clickable pending-tile" id="tile-pending" aria-expanded="false" aria-controls="drill-pending">
+    <div class="k">Maybe → pending</div><div class="v">${mPend}</div>
+    <div class="hint mhint"><span class="chev">&#9656;</span>${mPend ? "review & decide" : "none waiting"}</div></button>`;
+
   document.getElementById("tiles").innerHTML =
     featureTile +
     tile("Ads scored", ads.length) +
     tile("Apply", apply, "auto-tailored") +
-    tile("Maybe → pending", mPend, "awaiting you") +
+    pendingTile +
     tile("Maybe → converted", mConv) +
     tile("Skipped", skip);
 
@@ -222,6 +255,110 @@ function render() {
     drill.hidden = open;
   });
   if (drillOpen) { tileBtn.setAttribute("aria-expanded", "true"); drill.hidden = false; }
+
+  // pending drill-down: decide convert/skip in place
+  const drillP = document.getElementById("drill-pending");
+  drillP.innerHTML = `<div class="dhead">Maybe — ${pendingAds.length} awaiting your decision</div>` +
+    (pendingAds.length
+      ? pendingAds.map(a => {
+          const meta = [a.employer, a.municipality].filter(Boolean).join(" · ");
+          const gap = a.gaps ? `<div class="pjgap"><b>Gap:</b> ${a.gaps}</div>` : "";
+          const linkBtn = a.webpage_url ? `<a class="btn jlink" href="${a.webpage_url}" target="_blank" rel="noopener">Listing &#8599;</a>` : "";
+          return `<div class="job pending-job" data-id="${a.id}">
+            <div class="pjmain">
+              <div class="pjtitle">${a.headline || "Untitled role"}</div>
+              <div class="pjmeta">${meta}</div>${gap}
+            </div>
+            <div class="pactions">
+              ${linkBtn}
+              <button class="btn convert" data-act="convert">Convert (tailor CV)</button>
+              <button class="btn skip" data-act="skip">Skip</button>
+              <div class="act-status" hidden></div>
+            </div>
+          </div>`;
+        }).join("")
+      : `<div class="job"><div class="jmain"><div class="jmeta">Nothing waiting. New Maybe verdicts will appear here for you to convert or skip.</div></div></div>`);
+
+  const pBtn = document.getElementById("tile-pending");
+  pBtn.addEventListener("click", () => {
+    const open = pBtn.getAttribute("aria-expanded") === "true";
+    drillPendingOpen = !open;
+    pBtn.setAttribute("aria-expanded", drillPendingOpen ? "true" : "false");
+    drillP.hidden = open;
+  });
+  if (drillPendingOpen) { pBtn.setAttribute("aria-expanded", "true"); drillP.hidden = false; }
+
+  // restore any in-flight action state after a re-render
+  drillP.querySelectorAll(".pending-job").forEach(row => {
+    const id = row.getAttribute("data-id");
+    if (acted[id]) applyActionState(row, acted[id]);
+    row.querySelectorAll("button[data-act]").forEach(b => {
+      b.addEventListener("click", () => decide(row, id, b.getAttribute("data-act")));
+    });
+  });
+}
+
+function applyActionState(row, state) {
+  const status = row.querySelector(".act-status");
+  const btns = row.querySelectorAll("button[data-act]");
+  if (state === "converting" || state === "skipping") {
+    btns.forEach(b => b.disabled = true);
+    status.hidden = false; status.className = "act-status info";
+    status.textContent = state === "converting" ? "Requesting tailor…" : "Requesting skip…";
+  } else if (state === "convert-done") {
+    btns.forEach(b => b.disabled = true);
+    status.hidden = false; status.className = "act-status ok";
+    status.textContent = "Requested ✓ CV will be tailored & sent shortly; this updates after the next refresh.";
+  } else if (state === "skip-done") {
+    btns.forEach(b => b.disabled = true);
+    status.hidden = false; status.className = "act-status ok";
+    status.textContent = "Requested ✓ will be dropped; this updates after the next refresh.";
+  }
+}
+
+async function decide(row, id, act) {
+  const status = row.querySelector(".act-status");
+  acted[id] = act === "convert" ? "converting" : "skipping";
+  applyActionState(row, acted[id]);
+
+  if (!window.claude || !window.claude.use) {
+    fail(row, id, "Open this dashboard inside the Claude app to act here — or reply in your Claude chat to decide.");
+    return;
+  }
+  let mcp;
+  try { mcp = await window.claude.use("mcp"); } catch (e) { mcp = null; }
+  if (!mcp) {
+    fail(row, id, "Can't reach your connector from here. Reply in your Claude chat to decide instead.");
+    return;
+  }
+
+  const head = row.querySelector(".pjtitle").textContent;
+  const text = act === "convert"
+    ? `DASHBOARD ACTION: Convert the queued Maybe with ad id ${id} ("${head}"). Tailor its CV per the normal Apply process, send it to Samuel, and mark it converted in queue.json and history.json.`
+    : `DASHBOARD ACTION: Drop the queued Maybe with ad id ${id} ("${head}"). Mark it dropped in queue.json and set its history.json outcome to "dropped". Do not tailor a CV.`;
+
+  try {
+    await mcp.callTool(CONNECTOR, "fire_trigger", { trigger_id: TRIGGER_ID, text });
+    acted[id] = act === "convert" ? "convert-done" : "skip-done";
+    applyActionState(row, acted[id]);
+  } catch (e) {
+    const code = e && e.code;
+    let msg;
+    if (code === "needs_reauth") msg = "Reconnect Claude Code Remote in claude.ai Settings → Connectors, then try again.";
+    else if (code === "server_not_connected" || code === "not_in_manifest") msg = "Add / allow Claude Code Remote for this page in claude.ai Settings → Connectors.";
+    else if (code === "cancelled") msg = "Cancelled — not sent.";
+    else msg = "Couldn't send the request. Reply in your Claude chat to decide instead.";
+    fail(row, id, msg);
+  }
+}
+
+function fail(row, id, message) {
+  delete acted[id];
+  const status = row.querySelector(".act-status");
+  const btns = row.querySelectorAll("button[data-act]");
+  btns.forEach(b => b.disabled = false);
+  status.hidden = false; status.className = "act-status warn";
+  status.textContent = message;
 
   const vmax = Math.max(apply, mConv, mPend, mDrop, skip, 1);
   document.getElementById("funnel").innerHTML =
