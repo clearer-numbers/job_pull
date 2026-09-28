@@ -60,6 +60,25 @@
   .tile.feature { border-color: color-mix(in srgb, var(--apply) 45%, var(--border)); }
   .tile.feature .v { color: var(--apply); }
   .tile .note { font-size: .72rem; color: var(--ink-3); margin-top: 3px; }
+  .tile.clickable { cursor: pointer; text-align: left; width: 100%; font: inherit; transition: border-color .12s, box-shadow .12s; }
+  .tile.clickable:hover { border-color: var(--apply); }
+  .tile.clickable:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  .tile .hint { font-size: .68rem; color: var(--apply); font-family: var(--mono); margin-top: 6px; display: flex; align-items: center; gap: 4px; }
+  .tile .hint .chev { transition: transform .18s; }
+  .tile.clickable[aria-expanded="true"] .hint .chev { transform: rotate(90deg); }
+
+  .drill { margin-top: 12px; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; box-shadow: var(--shadow); overflow: hidden; }
+  .drill .dhead { padding: 14px 18px; font-size: .82rem; font-weight: 600; border-bottom: 1px solid var(--border); }
+  .job { display: flex; align-items: center; gap: 14px; padding: 13px 18px; border-bottom: 1px solid var(--border); text-decoration: none; color: inherit; transition: background .12s; }
+  .job:last-child { border-bottom: none; }
+  .job:hover { background: var(--surface-2); }
+  .job .jmain { flex: 1; min-width: 0; }
+  .job .jtitle { font-size: .9rem; font-weight: 500; color: var(--ink); }
+  .job .jmeta { font-size: .76rem; color: var(--ink-3); font-family: var(--mono); margin-top: 2px; }
+  .job .jopen { font-size: .74rem; font-family: var(--mono); color: var(--accent); flex: none; display: flex; align-items: center; gap: 5px; }
+  .job .jbadge { flex: none; font-size: .66rem; font-family: var(--mono); text-transform: uppercase; letter-spacing: .04em; padding: 3px 7px; border-radius: 5px; }
+  .badge-auto { background: color-mix(in srgb, var(--apply) 16%, transparent); color: var(--apply); }
+  .badge-converted { background: color-mix(in srgb, var(--accent) 16%, transparent); color: var(--accent); }
 
   .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 12px; }
   @media (max-width: 720px) { .grid2 { grid-template-columns: 1fr; } }
@@ -106,6 +125,7 @@
 <div class="wrap">
   <div class="meta" id="meta"></div>
   <div class="tiles" id="tiles"></div>
+  <div class="drill" id="drill" hidden></div>
   <div class="grid2">
     <section class="panel">
       <h2>Verdict breakdown</h2>
@@ -133,6 +153,7 @@
       "headline": "Senior Data Analyst",
       "employer": "Acast AB (publ)",
       "municipality": "Stockholm",
+      "webpage_url": "https://arbetsformedlingen.se/platsbanken/annonser/31518608",
       "scored_date": "2026-09-28",
       "verdict": "maybe",
       "cv_tailored": false,
@@ -144,6 +165,7 @@
       "headline": "Dataanalytiker",
       "employer": "Bolagsverket",
       "municipality": "Sundsvall",
+      "webpage_url": "https://arbetsformedlingen.se/platsbanken/annonser/31517482",
       "scored_date": "2026-09-28",
       "verdict": "skip",
       "cv_tailored": false,
@@ -165,6 +187,7 @@
 let DATA = { ads: [], runs: [] };
 try { DATA = JSON.parse(document.getElementById("history-data").textContent); } catch (e) {}
 let days = 30;
+let drillOpen = false;
 
 const fmtDate = iso => { if (!iso) return "—"; return new Date(iso).toLocaleString("sv-SE", { year: "numeric", month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" }); };
 const inRange = iso => { if (days === 0) return true; if (!iso) return false; return new Date(iso).getTime() >= Date.now() - days * 864e5; };
@@ -194,13 +217,47 @@ function render() {
   document.getElementById("meta").innerHTML =
     `<span>Last scored: <b>${fmtDate(lastScore)}</b></span><span>Last fetch: <b>${fmtDate(lastFetch)}</b></span><span>Showing: <b>${days === 0 ? "all time" : "last " + days + " days"}</b></span>`;
 
+  const tailoredAds = ads.filter(a => a.cv_tailored);
+  const featureTile = `<button type="button" class="tile feature clickable" id="tile-tailored" aria-expanded="false" aria-controls="drill">
+    <div class="k">CVs tailored</div><div class="v">${tailored}</div><div class="note">apply + converted maybes</div>
+    <div class="hint"><span class="chev">&#9656;</span>${tailored ? "view listings" : "none yet"}</div></button>`;
+
   document.getElementById("tiles").innerHTML =
-    tile("CVs tailored", tailored, "apply + converted maybes", true) +
+    featureTile +
     tile("Ads scored", ads.length) +
     tile("Apply", apply, "auto-tailored") +
     tile("Maybe → pending", mPend, "awaiting you") +
     tile("Maybe → converted", mConv) +
     tile("Skipped", skip);
+
+  // drill-down: tailored jobs with clickable listing links
+  const drill = document.getElementById("drill");
+  drill.innerHTML = `<div class="dhead">Tailored CVs — ${tailoredAds.length} listing${tailoredAds.length !== 1 ? "s" : ""}</div>` +
+    (tailoredAds.length
+      ? tailoredAds
+          .sort((a, b) => (b.tailored_date || "").localeCompare(a.tailored_date || ""))
+          .map(a => {
+            const badge = a.outcome === "converted"
+              ? `<span class="jbadge badge-converted">converted</span>`
+              : `<span class="jbadge badge-auto">apply</span>`;
+            const meta = [a.employer, a.municipality, a.tailored_date ? "tailored " + a.tailored_date : ""].filter(Boolean).join(" · ");
+            const link = a.webpage_url
+              ? `<a class="job" href="${a.webpage_url}" target="_blank" rel="noopener">`
+              : `<div class="job">`;
+            const close = a.webpage_url ? `</a>` : `</div>`;
+            const open = a.webpage_url ? `<span class="jopen">Open listing &#8599;</span>` : `<span class="jopen" style="color:var(--ink-3)">no link</span>`;
+            return `${link}<div class="jmain"><div class="jtitle">${a.headline || "Untitled role"}</div><div class="jmeta">${meta}</div></div>${badge}${open}${close}`;
+          }).join("")
+      : `<div class="job"><div class="jmain"><div class="jmeta">No CVs tailored in this range yet. When an ad is auto-tailored (Apply) or you convert a Maybe, it shows here with a link to the listing.</div></div></div>`);
+
+  const tileBtn = document.getElementById("tile-tailored");
+  tileBtn.addEventListener("click", () => {
+    const open = tileBtn.getAttribute("aria-expanded") === "true";
+    drillOpen = !open;
+    tileBtn.setAttribute("aria-expanded", drillOpen ? "true" : "false");
+    drill.hidden = open;
+  });
+  if (drillOpen) { tileBtn.setAttribute("aria-expanded", "true"); drill.hidden = false; }
 
   const vmax = Math.max(apply, mConv, mPend, mDrop, skip, 1);
   document.getElementById("funnel").innerHTML =
