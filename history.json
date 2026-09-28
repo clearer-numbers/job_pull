@@ -8,9 +8,9 @@
       "webpage_url": "https://arbetsformedlingen.se/platsbanken/annonser/31518608",
       "scored_date": "2026-09-28",
       "verdict": "maybe",
-      "cv_tailored": false,
-      "tailored_date": null,
-      "outcome": "pending",
+      "cv_tailored": true,
+      "tailored_date": "2026-09-28",
+      "outcome": "converted",
       "gaps": "Requires dbt (not on CV); names Omni as its BI tool vs your Tableau/Power BI/Looker; 'Senior' title; Stockholm on-site, remote status unclear."
     },
     {
