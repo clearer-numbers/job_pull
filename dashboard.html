@@ -1,0 +1,238 @@
+<title>Platsbanken Tracker</title>
+<style>
+  :root {
+    color-scheme: light;
+    --bg: #f4f5f7;
+    --surface: #ffffff;
+    --surface-2: #eceef1;
+    --border: #dce0e6;
+    --ink: #1c2230;
+    --ink-2: #56607a;
+    --ink-3: #8a93a6;
+    --accent: #2f6f8f;
+    --apply: #1f8a70;
+    --maybe: #b3781a;
+    --skip: #7a8296;
+    --drop: #a24a52;
+    --shadow: 0 1px 2px rgba(20,30,50,.06), 0 4px 14px rgba(20,30,50,.05);
+    --mono: "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, monospace;
+    --sans: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  }
+  :root:not([data-theme="light"]) {
+    @media (prefers-color-scheme: dark) {
+      color-scheme: dark;
+      --bg: #12151c; --surface: #1a1e27; --surface-2: #232833; --border: #2e3542;
+      --ink: #eef1f6; --ink-2: #a7b0c2; --ink-3: #6f7889; --accent: #5fa8c9;
+      --apply: #4fc4a4; --maybe: #e0a94a; --skip: #8b93a5; --drop: #d98088;
+      --shadow: 0 1px 2px rgba(0,0,0,.3), 0 4px 14px rgba(0,0,0,.28);
+    }
+  }
+  :root[data-theme="dark"] {
+    color-scheme: dark;
+    --bg: #12151c; --surface: #1a1e27; --surface-2: #232833; --border: #2e3542;
+    --ink: #eef1f6; --ink-2: #a7b0c2; --ink-3: #6f7889; --accent: #5fa8c9;
+    --apply: #4fc4a4; --maybe: #e0a94a; --skip: #8b93a5; --drop: #d98088;
+    --shadow: 0 1px 2px rgba(0,0,0,.3), 0 4px 14px rgba(0,0,0,.28);
+  }
+
+  * { box-sizing: border-box; }
+  body { background: var(--bg); color: var(--ink); font-family: var(--sans); line-height: 1.5; -webkit-font-smoothing: antialiased; }
+  .wrap { max-width: 1000px; margin: 0 auto; padding-inline: 16px; padding-block: 0 48px; }
+
+  header.topbar { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 10; background: color-mix(in srgb, var(--bg) 88%, transparent); backdrop-filter: blur(8px); border-bottom: 1px solid var(--border); }
+  .topbar-inner { max-width: 1000px; margin: 0 auto; padding: 14px 16px; display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
+  .brand { display: flex; flex-direction: column; gap: 2px; margin-right: auto; }
+  .brand h1 { margin: 0; font-size: 1.15rem; font-weight: 600; letter-spacing: -.01em; }
+  .brand .sub { font-size: .72rem; color: var(--ink-3); font-family: var(--mono); text-transform: uppercase; letter-spacing: .06em; }
+
+  .filters { display: flex; gap: 4px; background: var(--surface-2); padding: 4px; border-radius: 10px; }
+  .filters button { font-family: var(--mono); font-size: .74rem; font-weight: 500; border: none; background: transparent; color: var(--ink-2); padding: 6px 11px; border-radius: 7px; cursor: pointer; transition: all .12s; }
+  .filters button:hover { color: var(--ink); }
+  .filters button[aria-pressed="true"] { background: var(--surface); color: var(--ink); box-shadow: var(--shadow); }
+
+  .meta { font-size: .74rem; color: var(--ink-3); font-family: var(--mono); margin: 18px 0 20px; display: flex; gap: 20px; flex-wrap: wrap; }
+  .meta b { color: var(--ink-2); font-weight: 500; }
+
+  .tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(148px, 1fr)); gap: 12px; }
+  .tile { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 16px; box-shadow: var(--shadow); }
+  .tile .k { font-size: .72rem; color: var(--ink-3); text-transform: uppercase; letter-spacing: .05em; font-family: var(--mono); }
+  .tile .v { font-size: 2rem; font-weight: 600; letter-spacing: -.02em; margin-top: 6px; font-variant-numeric: tabular-nums; }
+  .tile.feature { border-color: color-mix(in srgb, var(--apply) 45%, var(--border)); }
+  .tile.feature .v { color: var(--apply); }
+  .tile .note { font-size: .72rem; color: var(--ink-3); margin-top: 3px; }
+
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 12px; }
+  @media (max-width: 720px) { .grid2 { grid-template-columns: 1fr; } }
+
+  .panel { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 18px; box-shadow: var(--shadow); }
+  .panel h2 { margin: 0 0 4px; font-size: .95rem; font-weight: 600; }
+  .panel .h-note { margin: 0 0 16px; font-size: .76rem; color: var(--ink-3); }
+
+  .row { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+  .row:last-child { margin-bottom: 0; }
+  .row .lbl { flex: 0 0 128px; font-size: .82rem; color: var(--ink-2); display: flex; align-items: center; gap: 7px; }
+  .dot { width: 9px; height: 9px; border-radius: 3px; flex: none; }
+  .bar-track { flex: 1; height: 22px; background: var(--surface-2); border-radius: 5px; overflow: hidden; }
+  .bar-fill { height: 100%; border-radius: 5px 2px 2px 5px; min-width: 2px; transition: width .4s ease; }
+  .row .val { flex: 0 0 34px; text-align: right; font-family: var(--mono); font-size: .84rem; font-weight: 500; font-variant-numeric: tabular-nums; }
+
+  .loc-list { display: flex; flex-direction: column; gap: 11px; }
+  .empty { color: var(--ink-3); font-size: .82rem; font-style: italic; padding: 8px 0; }
+
+  .runs { margin-top: 12px; }
+  .runs .noise-big { font-family: var(--mono); font-size: 1.05rem; color: var(--ink); line-height: 1.6; }
+  .runs .noise-big b { color: var(--accent); font-weight: 600; }
+
+  .foot { margin-top: 28px; font-size: .72rem; color: var(--ink-3); font-family: var(--mono); text-align: center; }
+  .foot a { color: var(--accent); }
+</style>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+
+<header class="topbar">
+  <div class="topbar-inner">
+    <div class="brand">
+      <h1>Platsbanken Tracker</h1>
+      <span class="sub">Job search pipeline</span>
+    </div>
+    <div class="filters" role="group" aria-label="Date range">
+      <button data-days="7">7d</button>
+      <button data-days="30" aria-pressed="true">30d</button>
+      <button data-days="90">90d</button>
+      <button data-days="0">All</button>
+    </div>
+  </div>
+</header>
+
+<div class="wrap">
+  <div class="meta" id="meta"></div>
+  <div class="tiles" id="tiles"></div>
+  <div class="grid2">
+    <section class="panel">
+      <h2>Verdict breakdown</h2>
+      <p class="h-note">What happened to each scored ad in range</p>
+      <div id="funnel"></div>
+    </section>
+    <section class="panel">
+      <h2>Where you're applying</h2>
+      <p class="h-note">Municipalities of every ad a CV was tailored for</p>
+      <div class="loc-list" id="locations"></div>
+    </section>
+  </div>
+  <section class="panel runs">
+    <h2>Pipeline efficiency</h2>
+    <p class="h-note">How much raw noise the filters cut, across cycles in range</p>
+    <div id="runs"></div>
+  </section>
+  <div class="foot">Source: <a href="https://github.com/clearer-numbers/job_pull" target="_blank" rel="noopener">clearer-numbers/job_pull</a> &middot; rebuilt each pipeline cycle</div>
+</div>
+
+<script id="history-data" type="application/json">{
+  "ads": [
+    {
+      "id": "31518608",
+      "headline": "Senior Data Analyst",
+      "employer": "Acast AB (publ)",
+      "municipality": "Stockholm",
+      "scored_date": "2026-09-28",
+      "verdict": "maybe",
+      "cv_tailored": false,
+      "tailored_date": null,
+      "outcome": "pending"
+    },
+    {
+      "id": "31517482",
+      "headline": "Dataanalytiker",
+      "employer": "Bolagsverket",
+      "municipality": "Sundsvall",
+      "scored_date": "2026-09-28",
+      "verdict": "skip",
+      "cv_tailored": false,
+      "tailored_date": null,
+      "outcome": "skip"
+    }
+  ],
+  "runs": [
+    {
+      "score_run_utc": "2026-09-28T08:23:00",
+      "fetch_run_utc": "2026-09-27T15:20:38",
+      "raw_hits": 49,
+      "relevant": 2,
+      "scored_this_run": 2
+    }
+  ]
+}</script>
+<script>
+let DATA = { ads: [], runs: [] };
+try { DATA = JSON.parse(document.getElementById("history-data").textContent); } catch (e) {}
+let days = 30;
+
+const fmtDate = iso => { if (!iso) return "—"; return new Date(iso).toLocaleString("sv-SE", { year: "numeric", month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" }); };
+const inRange = iso => { if (days === 0) return true; if (!iso) return false; return new Date(iso).getTime() >= Date.now() - days * 864e5; };
+
+function tile(k, v, note, feature) {
+  return `<div class="tile${feature ? " feature" : ""}"><div class="k">${k}</div><div class="v">${v}</div>${note ? `<div class="note">${note}</div>` : ""}</div>`;
+}
+function bar(label, color, count, max) {
+  const pct = max > 0 ? Math.max(count > 0 ? 6 : 0, (count / max) * 100) : 0;
+  return `<div class="row"><div class="lbl"><span class="dot" style="background:${color}"></span>${label}</div><div class="bar-track"><div class="bar-fill" style="width:${pct}%;background:${color}"></div></div><div class="val">${count}</div></div>`;
+}
+
+function render() {
+  const ads = (DATA.ads || []).filter(a => inRange(a.scored_date));
+  const runs = (DATA.runs || []).filter(r => inRange(r.score_run_utc));
+  const allRuns = DATA.runs || [];
+  const lastScore = allRuns.reduce((m, r) => r.score_run_utc > m ? r.score_run_utc : m, "");
+  const lastFetch = allRuns.reduce((m, r) => (r.fetch_run_utc || "") > m ? r.fetch_run_utc : m, "");
+
+  const apply = ads.filter(a => a.verdict === "apply").length;
+  const mConv = ads.filter(a => a.verdict === "maybe" && a.outcome === "converted").length;
+  const mDrop = ads.filter(a => a.verdict === "maybe" && a.outcome === "dropped").length;
+  const mPend = ads.filter(a => a.verdict === "maybe" && a.outcome === "pending").length;
+  const skip = ads.filter(a => a.verdict === "skip").length;
+  const tailored = ads.filter(a => a.cv_tailored).length;
+
+  document.getElementById("meta").innerHTML =
+    `<span>Last scored: <b>${fmtDate(lastScore)}</b></span><span>Last fetch: <b>${fmtDate(lastFetch)}</b></span><span>Showing: <b>${days === 0 ? "all time" : "last " + days + " days"}</b></span>`;
+
+  document.getElementById("tiles").innerHTML =
+    tile("CVs tailored", tailored, "apply + converted maybes", true) +
+    tile("Ads scored", ads.length) +
+    tile("Apply", apply, "auto-tailored") +
+    tile("Maybe → pending", mPend, "awaiting you") +
+    tile("Maybe → converted", mConv) +
+    tile("Skipped", skip);
+
+  const vmax = Math.max(apply, mConv, mPend, mDrop, skip, 1);
+  document.getElementById("funnel").innerHTML =
+    bar("Apply", "var(--apply)", apply, vmax) +
+    bar("Maybe · converted", "var(--accent)", mConv, vmax) +
+    bar("Maybe · pending", "var(--maybe)", mPend, vmax) +
+    bar("Maybe · dropped", "var(--drop)", mDrop, vmax) +
+    bar("Skip", "var(--skip)", skip, vmax);
+
+  const locs = {};
+  ads.filter(a => a.cv_tailored).forEach(a => { const m = a.municipality || "Unknown"; locs[m] = (locs[m] || 0) + 1; });
+  const locEntries = Object.entries(locs).sort((a, b) => b[1] - a[1]);
+  const lmax = locEntries.reduce((m, [, c]) => Math.max(m, c), 1);
+  document.getElementById("locations").innerHTML = locEntries.length
+    ? locEntries.map(([m, c]) => bar(m, "var(--accent)", c, lmax)).join("")
+    : `<div class="empty">No CVs tailored in this range yet.</div>`;
+
+  const cycles = runs.length;
+  const raw = runs.reduce((s, r) => s + (r.raw_hits || 0), 0);
+  const rel = runs.reduce((s, r) => s + (r.relevant || 0), 0);
+  const ratio = raw > 0 ? Math.round((1 - rel / raw) * 100) : 0;
+  document.getElementById("runs").innerHTML = cycles
+    ? `<div class="noise-big"><b>${cycles}</b> cycle${cycles !== 1 ? "s" : ""} &middot; <b>${raw}</b> raw hits filtered down to <b>${rel}</b> relevant ad${rel !== 1 ? "s" : ""} <span style="color:var(--ink-3)">(${ratio}% noise removed)</span></div>`
+    : `<div class="empty">No pipeline runs in this range.</div>`;
+}
+
+document.querySelectorAll(".filters button").forEach(b => {
+  b.addEventListener("click", () => {
+    days = parseInt(b.dataset.days, 10);
+    document.querySelectorAll(".filters button").forEach(x => x.setAttribute("aria-pressed", x === b ? "true" : "false"));
+    render();
+  });
+});
+render();
+</script>
